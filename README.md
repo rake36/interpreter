@@ -1,0 +1,3 @@
+# Building an Interpreter in Go
+
+Just following along with the book...
