@@ -1,3 +1,5 @@
 # Building an Interpreter in Go
 
-Just following along with the book...
+Up to Chapter 2...
+
+Basic Lexer, REPL working.
