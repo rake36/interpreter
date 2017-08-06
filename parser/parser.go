@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"interpreter/ast"
 	"interpreter/lexer"
 	"interpreter/token"
@@ -10,18 +11,33 @@ import (
 type Parser struct {
 	l *lexer.Lexer
 
+	errors []string
+
 	curToken  token.Token
 	peekToken token.Token
 }
 
 // New ... Creating a new Parser
 func New(lex *lexer.Lexer) *Parser {
-	p := &Parser{l: lex}
+	p := &Parser{
+		l:      lex,
+		errors: []string{},
+	}
 
 	p.nextToken()
 	p.nextToken()
 
 	return p
+}
+
+// Errors ... return all the errors the parser detected
+func (p *Parser) Errors() []string {
+	return p.errors
+}
+
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) nextToken() {
@@ -34,6 +50,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
 
+	// Loop through all the tokens until we hit the end of file...
 	for p.curToken.Type != token.EOF {
 		stmt := p.parseStatement()
 		if stmt != nil {
@@ -54,14 +71,18 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
+
+	// We don't get here unless the calling method knows the curToken is a LET
 	stmt := &ast.LetStatement{Token: p.curToken}
 
+	// if next token not a variable name, fail
 	if !p.expectPeek(token.IDENT) {
 		return nil
 	}
 
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
+	// if next token not an equals sign, fail
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
@@ -81,9 +102,9 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
 		return true
-	} else {
-		return false
 	}
+	p.peekError(t)
+	return false
 }
 
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
